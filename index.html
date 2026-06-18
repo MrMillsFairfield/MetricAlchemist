@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Metric Alchemist - Extended Edition</title>
+    <style>
+        /* CSS Variables for Dark Fantasy Theme */
+        :root {
+            --bg-base: #0f111a;
+            --bg-surface: #1e2235;
+            --primary: #8b5cf6;
+            --primary-glow: rgba(139, 92, 246, 0.6);
+            --secondary: #0ea5e9;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --vol-color: #06b6d4;
+            --mass-color: #ec4899;
+            --len-color: #10b981;
+            --mix-color: #f59e0b;
+            --extreme-color: #a855f7;
+            --recipe-color: #ef4444;
+            --time-color: #eab308;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        /* Container & Cards */
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--bg-surface);
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px var(--primary-glow);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .screen {
+            display: none;
+            padding: 2.5rem;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Typography */
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+        }
+
+        p.lore {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        /* Buttons */
+        .btn {
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px var(--primary-glow);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        /* HUD */
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .level-indicator {
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.3s ease;
+        }
+
+        /* Quest / Interaction Area */
+        .quest-board {
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 4px solid var(--primary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            font-size: 1.3rem;
+            text-align: center;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.4;
+        }
+
+        /* Dynamic Graphics Container */
+        .graphic-container {
+            height: 180px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        /* Volume Graphic (Beaker) */
+        .beaker {
+            display: none;
+            width: 80px;
+            height: 140px;
+            border: 4px solid rgba(255, 255, 255, 0.8);
+            border-top: none;
+            border-radius: 0 0 20px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .beaker-liquid {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 0%;
+            background: linear-gradient(to top, var(--vol-color), rgba(6, 182, 212, 0.4));
+            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Mass Graphic (Scale) */
+        .scale {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            width: 200px;
+        }
+        .scale-beam {
+            width: 160px;
+            height: 8px;
+            background: #cbd5e1;
+            border-radius: 4px;
+            transform: rotate(-15deg);
+            transition: transform 0.5s ease;
+            position: relative;
+        }
+        .scale-pan-left, .scale-pan-right {
+            position: absolute;
+            width: 40px;
+            height: 10px;
+            background: var(--mass-color);
+            top: 8px;
+            border-radius: 4px;
+        }
+        .scale-pan-left { left: -10px; }
+        .scale-pan-right { right: -10px; }
+        .scale-base {
+            width: 12px;
+            height: 80px;
+            background: #94a3b8;
+            margin-top: -4px;
+        }
+
+        /* Length Graphic (Map) */
+        .map-track {
+            display: none;
+            width: 80%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            position: relative;
+        }
+        .map-progress {
+            height: 100%;
+            width: 0%;
+            background: var(--len-color);
+            border-radius: 6px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px var(--len-color);
+        }
+        .map-marker {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 4px solid var(--len-color);
+            border-radius: 50%;
+            position: absolute;
+            top: -4px;
+            left: 0%;
+            transform: translateX(-50%);
+            transition: left 0.5s ease;
+        }
+
+        /* Emoji Visualizer for Advanced Levels */
+        .emoji-visual {
+            display: none;
+            font-size: 5rem;
+            text-align: center;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); filter: drop-shadow(0 0 15px rgba(255,255,255,0.2)); }
+            50% { transform: translateY(-15px); filter: drop-shadow(0 0 25px rgba(255,255,255,0.6)); }
+        }
+
+        /* Input Controls */
+        .input-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        input[type="number"] {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1.5rem;
+            padding: 0.8rem;
+            border-radius: 8px;
+            text-align: center;
+            width: 180px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--primary);
+        }
+
+        .target-unit {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-muted);
+        }
+
+        /* Feedback & Cheat Sheet */
+        .feedback {
+            text-align: center;
+            min-height: 24px;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .cheat-sheet-toggle {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            text-decoration: underline;
+            cursor: pointer;
+            margin: 0 auto 1rem auto;
+            display: block;
+            font-size: 0.9rem;
+        }
+
+        .cheat-sheet {
+            display: none;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            border: 1px dashed var(--primary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Animations */
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+            40%, 60% { transform: translate3d(8px, 0, 0); }
+        }
+
+        .glow-success {
+            animation: successGlow 0.6s ease-out;
+        }
+        @keyframes successGlow {
+            0% { box-shadow: 0 0 20px var(--primary-glow); }
+            50% { box-shadow: 0 0 40px var(--success), inset 0 0 20px rgba(16, 185, 129, 0.2); border-color: var(--success); }
+            100% { box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 20px var(--primary-glow); }
+        }
+
+        /* Stat Grid for End Screen */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: rgba(0,0,0,0.3);
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--secondary);
+        }
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        
+        <div id="start-screen" class="screen active">
+            <h1>The Metric Alchemist</h1>
+            <p class="lore">
+                Welcome, Apprentice. The Grand Master requires your aid. Master the foundational metrics of Volume, Mass, and Length to survive. Once proven, you must face extreme macro-scales, synthesize complex multi-ingredient recipes, and control the flow of Time itself to ascend to True Grand Master.
+            </p>
+            <button class="btn" onclick="game.startGame()">Begin Apprenticeship</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="hud">
+                <span>Streak: <span id="streak-counter" style="color: #f59e0b;">0</span> 🔥</span>
+                <span>Score: <span id="score-counter" style="color: var(--primary);">0</span> ✨</span>
+                <span>Level: <span id="level-counter">1/7</span></span>
+            </div>
+
+            <div id="level-title" class="level-indicator">Loading...</div>
+            
+            <div class="progress-bar-container">
+                <div id="progress-fill"></div>
+            </div>
+
+            <div class="quest-board" id="quest-text">
+                </div>
+
+            <div class="graphic-container">
+                <div id="visual-vol" class="beaker">
+                    <div id="beaker-liquid" class="beaker-liquid"></div>
+                </div>
+                <div id="visual-mass" class="scale">
+                    <div id="scale-beam" class="scale-beam">
+                        <div class="scale-pan-left"></div>
+                        <div class="scale-pan-right"></div>
+                    </div>
+                    <div class="scale-base"></div>
+                </div>
+                <div id="visual-len" class="map-track">
+                    <div id="map-progress" class="map-progress"></div>
+                    <div id="map-marker" class="map-marker"></div>
+                </div>
+                <div id="visual-emoji" class="emoji-visual">🔮</div>
+            </div>
+
+            <button class="cheat-sheet-toggle" onclick="game.toggleCheatSheet()">View Transformation Matrix (Cheat Sheet)</button>
+            <div id="cheat-sheet" class="cheat-sheet"></div>
+
+            <div class="input-group">
+                <input type="number" id="player-input" placeholder="Value..." step="any" autocomplete="off">
+                <span id="target-unit" class="target-unit">ml</span>
+            </div>
+
+            <div id="feedback-msg" class="feedback"></div>
+
+            <button class="btn" onclick="game.checkAnswer()">Transmute Element</button>
+        </div>
+
+        <div id="end-screen" class="screen">
+            <h1>True Grand Master!</h1>
+            <p class="lore">You have conquered micro-measurements, macro-scales, synthetic recipes, and temporal metrics. The universe is calibrated to your will.</p>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-value" id="final-score">0</span>
+                    <span class="stat-label">Total Score</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="final-streak">0</span>
+                    <span class="stat-label">Highest Streak</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="final-accuracy">0%</span>
+                    <span class="stat-label">Accuracy</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="final-trials">7/7</span>
+                    <span class="stat-label">Trials Passed</span>
+                </div>
+            </div>
+
+            <button class="btn" onclick="game.resetGame()">Play Again</button>
+        </div>
+
+    </div>
+
+    <script>
+        const game = {
+            state: {
+                currentLevel: 1,
+                score: 0,
+                streak: 0,
+                highestStreak: 0,
+                correctInLevel: 0,
+                totalAttempts: 0,
+                totalCorrect: 0,
+                currentProblem: null
+            },
+
+            levels: [
+                { id: 1, title: "Level 1: Liquid Alchemy (Volume)", color: "var(--vol-color)", visual: "visual-vol", cheatSheet: "1 Liter (L) = 1,000 milliliters (ml)<br>L → ml : Multiply by 1000<br>ml → L : Divide by 1000" },
+                { id: 2, title: "Level 2: The Blacksmith's Forge (Mass)", color: "var(--mass-color)", visual: "visual-mass", cheatSheet: "1 Kilogram (kg) = 1,000 grams (g)<br>kg → g : Multiply by 1000<br>g → kg : Divide by 1000" },
+                { id: 3, title: "Level 3: Cartographer's Guild (Length)", color: "var(--len-color)", visual: "visual-len", cheatSheet: "1 cm = 10 mm | 1 m = 100 cm | 1 km = 1,000 m<br>To move to a smaller unit, multiply.<br>To move to a larger unit, divide." },
+                { id: 4, title: "Level 4: The Adept Trial (Mixed Basics)", color: "var(--mix-color)", visual: "visual-emoji", emoji: "🔮", cheatSheet: "Combine all your knowledge. Read the word problems carefully to determine which units to convert!" },
+                { id: 5, title: "Level 5: Micro & Macro Scales", color: "var(--extreme-color)", visual: "visual-emoji", emoji: "⚛️", cheatSheet: "Introducing extremes!<br>1 kg = 1,000,000 milligrams (mg)<br>1 km = 1,000,000 millimeters (mm)<br>1 kiloliter (kL) = 1,000,000 milliliters (ml)<br>Jump 6 decimal places!" },
+                { id: 6, title: "Level 6: Multi-Ingredient Synthesis", color: "var(--recipe-color)", visual: "visual-emoji", emoji: "📜", cheatSheet: "Convert ALL ingredients to the final requested unit BEFORE adding them together.<br>E.g., kg → g AND mg → g, then add them." },
+                { id: 7, title: "Level 7: The Chrono-Alchemist (Rates)", color: "var(--time-color)", visual: "visual-emoji", emoji: "⏳", cheatSheet: "Combine metric conversions with time!<br>1 hour = 60 minutes. 1 minute = 60 seconds.<br>Convert the metric unit first, then multiply/divide by time." }
+            ],
+
+            wordProblems: [
+                { q: "A healing potion requires 400ml of water, but your beaker holds 1.2L. If you fill the potion, how many ml of space are left in the beaker?", a: 800, u: "ml" },
+                { q: "You forged a sword with 1.5kg of iron, but you need to add 450g of silver for enchantments. What is the total weight in grams?", a: 1950, u: "g" },
+                { q: "A map shows a dungeon is 2.5km away. You have already walked 1,200m. How many meters do you have left?", a: 1300, u: "m" },
+                { q: "An elixir recipe calls for 0.05kg of crushed dragon bone. Your scale only measures in grams. How many grams is this?", a: 50, u: "g" },
+                { q: "You have 3500ml of magic sap. How many Liters is this?", a: 3.5, u: "L" },
+                { q: "A giant's ring weighs 4,500g. Convert this heavy burden into kilograms.", a: 4.5, u: "kg" }
+            ],
+
+            init() {
+                document.getElementById('player-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.checkAnswer();
+                });
+            },
+
+            switchScreen(screenId) {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(screenId).classList.add('active');
+            },
+
+            startGame() {
+                this.resetState();
+                this.switchScreen('game-screen');
+                this.loadLevel();
+            },
+
+            resetState() {
+                this.state = {
+                    currentLevel: 1, score: 0, streak: 0, highestStreak: 0,
+                    correctInLevel: 0, totalAttempts: 0, totalCorrect: 0, currentProblem: null
+                };
+            },
+
+            resetGame() {
+                this.startGame();
+            },
+
+            updateHUD() {
+                document.getElementById('streak-counter').innerText = this.state.streak;
+                document.getElementById('score-counter').innerText = this.state.score;
+                document.getElementById('level-counter').innerText = `${this.state.currentLevel}/${this.levels.length}`;
+                
+                const progress = (this.state.correctInLevel / 5) * 100;
+                document.getElementById('progress-fill').style.width = `${progress}%`;
+            },
+
+            loadLevel() {
+                const lvl = this.levels[this.state.currentLevel - 1];
+                
+                const titleEl = document.getElementById('level-title');
+                titleEl.innerText = lvl.title;
+                titleEl.style.color = lvl.color;
+                
+                document.getElementById('cheat-sheet').innerHTML = lvl.cheatSheet;
+
+                // Handle Visuals
+                ['visual-vol', 'visual-mass', 'visual-len', 'visual-emoji'].forEach(id => {
+                    document.getElementById(id).style.display = 'none';
+                });
+                
+                const visualEl = document.getElementById(lvl.visual);
+                visualEl.style.display = (lvl.visual === 'visual-mass' || lvl.visual === 'visual-len') ? 'flex' : 'block';
+                
+                if (lvl.visual === 'visual-emoji') {
+                    visualEl.innerText = lvl.emoji;
+                }
+
+                this.state.correctInLevel = 0;
+                this.updateHUD();
+                this.generateProblem();
+            },
+
+            generateProblem() {
+                const lvl = this.state.currentLevel;
+                let prob = { text: "", answer: 0, targetUnit: "" };
+
+                if (lvl === 1) { // Volume (ml <-> L)
+                    if (Math.random() > 0.5) {
+                        const L = parseFloat((Math.random() * 4 + 0.5).toFixed(1));
+                        prob.text = `A customer needs <span style="color:var(--vol-color)">${L} L</span> of glowing liquid. How many milliliters is this?`;
+                        prob.answer = L * 1000;
+                        prob.targetUnit = "ml";
+                    } else {
+                        const ml = Math.floor(Math.random() * 8 + 1) * 500;
+                        prob.text = `You harvested <span style="color:var(--vol-color)">${ml} ml</span> of moon dew. Convert this to Liters.`;
+                        prob.answer = ml / 1000;
+                        prob.targetUnit = "L";
+                    }
+                    this.resetVisuals(1);
+                } 
+                else if (lvl === 2) { // Mass (g <-> kg)
+                    if (Math.random() > 0.5) {
+                        const kg = parseFloat((Math.random() * 2 + 0.05).toFixed(3));
+                        prob.text = `A rare metal ingot weighs <span style="color:var(--mass-color)">${kg} kg</span>. How many grams is this?`;
+                        prob.answer = Math.round(kg * 1000);
+                        prob.targetUnit = "g";
+                    } else {
+                        const g = Math.floor(Math.random() * 50 + 1) * 25;
+                        prob.text = `You crushed <span style="color:var(--mass-color)">${g} g</span> of crystal. What is this in kilograms?`;
+                        prob.answer = g / 1000;
+                        prob.targetUnit = "kg";
+                    }
+                    this.resetVisuals(2);
+                } 
+                else if (lvl === 3) { // Length (mm/cm/m/km jumps)
+                    const types = [
+                        { f: "cm", t: "m", m: 100, op: 'div' }, { f: "m", t: "km", m: 1000, op: 'div' },
+                        { f: "km", t: "m", m: 1000, op: 'mul' }, { f: "m", t: "cm", m: 100, op: 'mul' }
+                    ];
+                    const choice = types[Math.floor(Math.random() * types.length)];
+                    let val = (choice.op === 'mul') ? (Math.random() * 5 + 0.5).toFixed(2) : Math.floor(Math.random() * 500 + 10);
+                    val = parseFloat(val);
+                    
+                    prob.text = `Chart a course of <span style="color:var(--len-color)">${val} ${choice.f}</span>. Convert this exactly into ${choice.t}.`;
+                    prob.answer = parseFloat((choice.op === 'mul' ? val * choice.m : val / choice.m).toFixed(4));
+                    prob.targetUnit = choice.t;
+                    this.resetVisuals(3);
+                } 
+                else if (lvl === 4) { // Mixed Basics
+                    const p = this.wordProblems[Math.floor(Math.random() * this.wordProblems.length)];
+                    prob.text = p.q; prob.answer = p.a; prob.targetUnit = p.u;
+                }
+                else if (lvl === 5) { // Micro & Macro (extreme jumps)
+                    const types = [
+                        { f: "mg", t: "kg", m: 1000000, op: 'div', c: "var(--mass-color)" },
+                        { f: "kg", t: "mg", m: 1000000, op: 'mul', c: "var(--mass-color)" },
+                        { f: "mm", t: "km", m: 1000000, op: 'div', c: "var(--len-color)" },
+                        { f: "km", t: "mm", m: 1000000, op: 'mul', c: "var(--len-color)" },
+                        { f: "kL", t: "ml", m: 1000000, op: 'mul', c: "var(--vol-color)" }
+                    ];
+                    const ch = types[Math.floor(Math.random() * types.length)];
+                    let val = (ch.op === 'mul') ? parseFloat((Math.random() * 2 + 0.01).toFixed(3)) : Math.floor(Math.random() * 9 + 1) * 500000;
+                    prob.text = `A cosmic anomaly measures <span style="color:${ch.c}">${val} ${ch.f}</span>. Jump 6 decimal places to convert this into ${ch.t}!`;
+                    prob.answer = ch.op === 'mul' ? val * ch.m : val / ch.m;
+                    prob.targetUnit = ch.t;
+                }
+                else if (lvl === 6) { // Multi-Ingredient Recipes
+                    const bases = [
+                        { mid: "g", small: "mg", large: "kg", c: "var(--mass-color)" },
+                        { mid: "ml", small: "drops (pretend 1 drop=1ml)", large: "L", c: "var(--vol-color)" },
+                        { mid: "m", small: "cm", large: "km", c: "var(--len-color)" }
+                    ];
+                    const sys = bases[Math.floor(Math.random() * bases.length)];
+                    
+                    let p1_large = parseFloat((Math.random() * 2 + 0.5).toFixed(2)); // e.g., 1.5 kg
+                    let p2_mid = Math.floor(Math.random() * 400 + 100); // e.g., 250 g
+                    
+                    let p3_small, ans_mid;
+                    if (sys.mid === "m" && sys.small === "cm") {
+                        p3_small = Math.floor(Math.random() * 500 + 100); // 300 cm
+                        ans_mid = (p1_large * 1000) + p2_mid + (p3_small / 100);
+                    } else {
+                        p3_small = Math.floor(Math.random() * 50 + 10) * 1000; // 50,000 mg
+                        ans_mid = (p1_large * 1000) + p2_mid + (p3_small / 1000);
+                    }
+
+                    prob.text = `Combine <span style="color:${sys.c}">${p1_large} ${sys.large}</span> of root, <span style="color:${sys.c}">${p2_mid} ${sys.mid}</span> of leaves, and <span style="color:${sys.c}">${p3_small} ${sys.small}</span> of extract. What is the total?`;
+                    prob.answer = parseFloat(ans_mid.toFixed(4));
+                    prob.targetUnit = sys.mid;
+                }
+                else if (lvl === 7) { // Time & Rates
+                    const scenarios = [
+                        { text: "A potion drips at [X] ml per minute. How many Liters will it produce in 1 hour?", m: 60, div: 1000, u: "L" },
+                        { text: "A magical cart travels at [X] meters per minute. How many Kilometers will it travel in 1 hour?", m: 60, div: 1000, u: "km" },
+                        { text: "A golem consumes [X] kg of coal per hour. How many grams does it consume in exactly 1 minute?", m: 1000, div: 60, u: "g" }
+                    ];
+                    const scen = scenarios[Math.floor(Math.random() * scenarios.length)];
+                    
+                    // Generate a base X that results in a clean answer if possible
+                    let x = scen.u === "g" ? Math.floor(Math.random() * 5 + 1) * 3 : Math.floor(Math.random() * 40 + 10) * 10;
+                    
+                    prob.text = scen.text.replace("[X]", `<span style="color:var(--time-color)">${x}</span>`);
+                    prob.answer = parseFloat(((x * scen.m) / scen.div).toFixed(4));
+                    prob.targetUnit = scen.u;
+                }
+
+                this.state.currentProblem = prob;
+                document.getElementById('quest-text').innerHTML = prob.text;
+                document.getElementById('target-unit').innerText = prob.targetUnit;
+                document.getElementById('player-input').value = '';
+                
+                const feedback = document.getElementById('feedback-msg');
+                feedback.innerText = '';
+                document.getElementById('player-input').focus();
+            },
+
+            resetVisuals(lvl) {
+                if (lvl === 1) document.getElementById('beaker-liquid').style.height = '10%';
+                if (lvl === 2) document.getElementById('scale-beam').style.transform = 'rotate(-25deg)';
+                if (lvl === 3) {
+                    document.getElementById('map-progress').style.width = '10%';
+                    document.getElementById('map-marker').style.left = '10%';
+                }
+            },
+
+            triggerSuccessVisual() {
+                const lvl = this.state.currentLevel;
+                if (lvl === 1) document.getElementById('beaker-liquid').style.height = '90%';
+                if (lvl === 2) document.getElementById('scale-beam').style.transform = 'rotate(0deg)';
+                if (lvl === 3) {
+                    document.getElementById('map-progress').style.width = '100%';
+                    document.getElementById('map-marker').style.left = '100%';
+                }
+            },
+
+            toggleCheatSheet() {
+                const sheet = document.getElementById('cheat-sheet');
+                sheet.style.display = sheet.style.display === 'block' ? 'none' : 'block';
+            },
+
+            checkAnswer() {
+                const inputEl = document.getElementById('player-input');
+                const val = inputEl.value;
+                if (val === '') return;
+
+                this.state.totalAttempts++;
+                const playerAns = parseFloat(val);
+                const isCorrect = Math.abs(playerAns - this.state.currentProblem.answer) < 0.0001;
+                
+                const feedback = document.getElementById('feedback-msg');
+                const container = document.getElementById('game-container');
+
+                if (isCorrect) {
+                    this.state.totalCorrect++;
+                    this.state.correctInLevel++;
+                    this.state.streak++;
+                    if (this.state.streak > this.state.highestStreak) {
+                        this.state.highestStreak = this.state.streak;
+                    }
+                    
+                    this.state.score += 100 + (this.state.streak * 20);
+                    
+                    feedback.innerText = "✨ Perfect Transmutation!";
+                    feedback.style.color = "var(--success)";
+                    
+                    container.classList.add('glow-success');
+                    setTimeout(() => container.classList.remove('glow-success'), 600);
+                    
+                    this.triggerSuccessVisual();
+                    this.updateHUD();
+
+                    setTimeout(() => {
+                        if (this.state.correctInLevel >= 5) {
+                            if (this.state.currentLevel < this.levels.length) {
+                                this.state.currentLevel++;
+                                this.loadLevel();
+                            } else {
+                                this.endGame();
+                            }
+                        } else {
+                            this.generateProblem();
+                        }
+                    }, 1200);
+
+                } else {
+                    this.state.streak = 0;
+                    feedback.innerText = "❌ Incorrect calibration. Check your decimals or matrix factors!";
+                    feedback.style.color = "var(--danger)";
+                    
+                    container.classList.add('shake');
+                    setTimeout(() => container.classList.remove('shake'), 400);
+                    
+                    this.updateHUD();
+                }
+            },
+
+            endGame() {
+                this.switchScreen('end-screen');
+                document.getElementById('final-score').innerText = this.state.score;
+                document.getElementById('final-streak').innerText = this.state.highestStreak;
+                
+                const accuracy = Math.round((this.state.totalCorrect / this.state.totalAttempts) * 100) || 0;
+                document.getElementById('final-accuracy').innerText = `${accuracy}%`;
+            }
+        };
+
+        window.onload = () => game.init();
+
+    </script>
+</body>
+</html>
